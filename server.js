@@ -69,8 +69,12 @@ app.put("/books/:id", async (req, res) => {
 
         booksObject[bookIndex] = updatedBook;  // atualiza o livro selecionado no array
 
-        fs.writeFileSync("books.json", JSON.stringify(booksObject, null, 2)); // atualiza o arquivo json
-        res.status(200).json(updatedBook);
+        if (bookIndex >= 0) {
+            fs.writeFileSync("books.json", JSON.stringify(booksObject, null, 2)); // atualiza o arquivo json
+            res.status(200).json(updatedBook);
+        } else {
+            res.status(404).send({ message: "Livro não encontrado" });
+        }
 
     } catch (error) {
         res.status(500).send(error);
@@ -85,13 +89,14 @@ app.delete("/books/:id", async (req, res) => {
         const booksObject = JSON.parse(books);
         const bookIndex = booksObject.findIndex((book) => book.id === req.params.id);
 
-        if (bookIndex >= 0) {
-            booksObject.splice(bookIndex, 1);
-            fs.writeFileSync("books.json", JSON.stringify(booksObject, null, 2));
-            res.status(204).send();
-        } else {
-            res.status(404).send({ message: "Livro não encontrado" });
+        // verificar se o id do livro existe
+        if (bookIndex < 0) {
+            return res.status(404).send({ message: "Livro não encontrado" });
         }
+
+        booksObject.splice(bookIndex, 1);
+        fs.writeFileSync("books.json", JSON.stringify(booksObject, null, 2));
+        res.status(204).send();
 
     } catch (error) {
         res.status(500).send(error);

@@ -25,3 +25,8 @@ The stored files are in JSON format, with the JSON object generated in the body 
 ]
 
 ```
+
+## How do I clone the project??
+
+If you have Git installed, install it on your machine and run the command in your terminal.
+``` git clone https://github.com/igorrm19/biblioteca-de-arquivos.git ```

@@ -10,7 +10,7 @@ app.use(express.json());
 
 app.get("/books", async (req, res) => {
     try {
-        const books = fs.readFileSync("books.json", "utf-8");
+        const books = await fs.promises.readFile("books.json", "utf-8");
         res.send(JSON.parse(books));
     } catch (error) {
         if (res.statusCode === 404) {
@@ -24,7 +24,7 @@ app.get("/books", async (req, res) => {
 
 app.get("/books/:id", async (req, res) => {
     try {
-        const books = fs.readFileSync("books.json", "utf-8");
+        const books = await fs.promises.readFile("books.json", "utf-8");
         const book = JSON.parse(books).find((book) => book.id === req.params.id);
 
         if (!book) {
@@ -42,7 +42,7 @@ app.get("/books/:id", async (req, res) => {
 app.post("/books", async (req, res) => {
     try {
         const book = req.body;
-        const books = fs.readFileSync("books.json", "utf-8");
+        const books = await fs.promises.readFile("books.json", "utf-8");
         const booksObject = JSON.parse(books);
 
         book.id = Date.now().toString();
@@ -57,11 +57,15 @@ app.post("/books", async (req, res) => {
     }
 });
 
+app.post("/books", (req, res) => {
+    res.status(404).send({ message: "Operação não permitida" });
+});
+
 
 app.put("/books/:id", async (req, res) => {
     try {
         const book = req.body;
-        const books = fs.readFileSync("books.json", "utf-8");
+        const books = await fs.promises.readFile("books.json", "utf-8");
         const booksObject = JSON.parse(books);
         const bookIndex = booksObject.findIndex((book) => book.id === req.params.id);
 
@@ -85,7 +89,7 @@ app.put("/books/:id", async (req, res) => {
 
 app.delete("/books/:id", async (req, res) => {
     try {
-        const books = fs.readFileSync("books.json", "utf-8");
+        const books = await fs.promises.readFile("books.json", "utf-8");
         const booksObject = JSON.parse(books);
         const bookIndex = booksObject.findIndex((book) => book.id === req.params.id);
 

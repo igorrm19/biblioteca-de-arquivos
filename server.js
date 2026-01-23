@@ -57,7 +57,7 @@ app.post("/books", async (req, res) => {
     }
 });
 
-app.post("/books", (req, res) => {
+app.put("/books", (req, res) => {
     res.status(404).send({ message: "Operação não permitida" });
 });
 
@@ -106,6 +106,10 @@ app.delete("/books/:id", async (req, res) => {
         res.status(500).send(error);
         console.error(error);
     }
+});
+
+app.delete("/books", (req, res) => {
+    res.status(404).send({ message: "Operação não permitida" });
 });
 
 app.listen(3000, () => {

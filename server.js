@@ -1,21 +1,35 @@
 
 const express = require("express");
-const fs = require("fs");
+const { Pool } = require("pg");
 
 const app = express();
+
+const pool = new Pool({
+    user: 'postgres',
+    host: 'localhost',
+    database: 'library_db',
+    password: '123456',
+    port: 5432,
+});
+
 
 app.use(express.json());
 
 
-
 app.get("/books", async (req, res) => {
     try {
-        const books = await fs.promises.readFile("books.json", "utf-8");
-        res.send(JSON.parse(books));
-    } catch (error) {
-        if (res.statusCode === 404) {
-            console.error(error);
+
+        const books = await pool.query("SELECT * FROM books");
+
+        if (books.rowCount === 0) {
+            return [];
         }
+
+        res.status(200).json(books.rows);
+
+
+    } catch (error) {
+
         res.status(500).send(error);
         console.error(error);
     }
@@ -24,14 +38,14 @@ app.get("/books", async (req, res) => {
 
 app.get("/books/:id", async (req, res) => {
     try {
-        const books = await fs.promises.readFile("books.json", "utf-8");
-        const book = JSON.parse(books).find((book) => book.id === req.params.id);
+        const book = await pool.query("SELECT * FROM books WHERE id = $1", [req.params.id]);
 
-        if (!book) {
+        if (book.rows.length === 0) {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
-        res.send(book);
+        res.status(200).json(book.rows);
+
     } catch (error) {
         res.status(500).send(error);
         console.error(error);
@@ -42,14 +56,15 @@ app.get("/books/:id", async (req, res) => {
 app.post("/books", async (req, res) => {
     try {
         const book = req.body;
-        const books = await fs.promises.readFile("books.json", "utf-8");
-        const booksObject = JSON.parse(books);
 
-        book.id = Date.now().toString();
-        booksObject.push(book);
+        const result = await pool.query(
+            `INSERT INTO books (title, author, published_year)
+             VALUES ($1, $2, $3)
+             RETURNING *`,
+            [book.title, book.author, book.published_year]
+        );
 
-        fs.writeFileSync("books.json", JSON.stringify(booksObject, null, 2));
-        res.status(201).send(book);
+        res.status(201).send(result.rows);
 
     } catch (error) {
         res.status(500).send(error);
@@ -57,28 +72,25 @@ app.post("/books", async (req, res) => {
     }
 });
 
-app.put("/books", (req, res) => {
-    res.status(404).send({ message: "Operação não permitida" });
-});
-
 
 app.put("/books/:id", async (req, res) => {
     try {
         const book = req.body;
-        const books = await fs.promises.readFile("books.json", "utf-8");
-        const booksObject = JSON.parse(books);
-        const bookIndex = booksObject.findIndex((book) => book.id === req.params.id);
+        const result = await pool.query(
+            `UPDATE books
+             SET title = $1,
+                 author = $2,
+                 published_year = $3
+             WHERE id = $4
+             RETURNING *`,
+            [book.title, book.author, book.published_year, req.params.id]
+        );
 
-        const updatedBook = { ...booksObject[bookIndex], ...book, id: req.params.id }; // atualiza o livro selecionado com os dados enviados no body 
-
-        booksObject[bookIndex] = updatedBook;  // atualiza o livro selecionado no array
-
-        if (bookIndex >= 0) {
-            fs.writeFileSync("books.json", JSON.stringify(booksObject, null, 2)); // atualiza o arquivo json
-            res.status(200).json(updatedBook);
-        } else {
-            res.status(404).send({ message: "Livro não encontrado" });
+        if (result.rowCount === 0) {
+            return res.status(404).send({ message: "Livro não encontrado" });
         }
+
+        res.status(200).json(result.rows[0]);
 
     } catch (error) {
         res.status(500).send(error);
@@ -89,18 +101,24 @@ app.put("/books/:id", async (req, res) => {
 
 app.delete("/books/:id", async (req, res) => {
     try {
-        const books = await fs.promises.readFile("books.json", "utf-8");
-        const booksObject = JSON.parse(books);
-        const bookIndex = booksObject.findIndex((book) => book.id === req.params.id);
+        const result = await pool.query("DELETE FROM books WHERE id = $1", [req.params.id]);
 
-        // verificar se o id do livro existe
-        if (bookIndex < 0) {
+        if (result.rowCount === 0) {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
-        booksObject.splice(bookIndex, 1);
-        fs.writeFileSync("books.json", JSON.stringify(booksObject, null, 2));
-        res.status(204).send();
+        res.status(204).send("Livro deletado com sucesso");
+    } catch (error) {
+        res.status(500).send(error);
+        console.error(error);
+    }
+});
+
+
+app.delete("/books", async (req, res) => {
+    try {
+
+        res.status(400).json({ msn: "Digiti um id para encontrar o livro" })
 
     } catch (error) {
         res.status(500).send(error);
@@ -108,9 +126,6 @@ app.delete("/books/:id", async (req, res) => {
     }
 });
 
-app.delete("/books", (req, res) => {
-    res.status(404).send({ message: "Operação não permitida" });
-});
 
 app.listen(3000, () => {
     console.log("Server is running on port 3000");

@@ -90,7 +90,7 @@ app.put("/books/:id", async (req, res) => {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
-        res.status(200).json(result.rows);
+        res.status(200).json(result.rows[0]);
 
     } catch (error) {
         res.status(500).send(error);
@@ -107,7 +107,7 @@ app.delete("/books/:id", async (req, res) => {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
-        res.status(204).send();
+        res.status(204).send("Livro deletado com sucesso");
     } catch (error) {
         res.status(500).send(error);
         console.error(error);
@@ -117,13 +117,9 @@ app.delete("/books/:id", async (req, res) => {
 
 app.delete("/books", async (req, res) => {
     try {
-        const result = await pool.query("DELETE FROM books");
 
-        if (result.rowCount === 0) {
-            return res.status(404).send({ message: "Livro não encontrado" });
-        }
+        res.status(400).json({ msn: "Digiti um id para encontrar o livro" })
 
-        res.status(204).send();
     } catch (error) {
         res.status(500).send(error);
         console.error(error);

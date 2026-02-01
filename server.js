@@ -20,11 +20,13 @@ app.get("/books", async (req, res) => {
     try {
 
         const books = await pool.query("SELECT * FROM books");
-        res.send(books.rows);
 
         if (books.rowCount === 0) {
-            return res.status(404).send({ message: "Livro não encontrado" });
+            return [];
         }
+
+        res.status(200).json(books.rows);
+
 
     } catch (error) {
 
@@ -38,11 +40,12 @@ app.get("/books/:id", async (req, res) => {
     try {
         const book = await pool.query("SELECT * FROM books WHERE id = $1", [req.params.id]);
 
-        if (!book) {
+        if (book.rows.length === 0) {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
-        res.send(book.rows);
+        res.status(200).json(book.rows);
+
     } catch (error) {
         res.status(500).send(error);
         console.error(error);
@@ -54,9 +57,14 @@ app.post("/books", async (req, res) => {
     try {
         const book = req.body;
 
-        const books = await pool.query("INSERT INTO books (title, author, published_year) VALUES ($1, $2, $3)", [book.title, book.author, book.published_year]);
+        const result = await pool.query(
+            `INSERT INTO books (title, author, published_year)
+             VALUES ($1, $2, $3)
+             RETURNING *`,
+            [book.title, book.author, book.published_year]
+        );
 
-        res.status(201).send(books.rows);
+        res.status(201).send(result.rows);
 
     } catch (error) {
         res.status(500).send(error);
@@ -68,13 +76,22 @@ app.post("/books", async (req, res) => {
 app.put("/books/:id", async (req, res) => {
     try {
         const book = req.body;
-        const books = await pool.query("UPDATE books SET title = $1, author = $2, published_year = $3 WHERE id = $4", [book.title, book.author, book.published_year, req.params.id]);
+        const result = await pool.query(
+            `UPDATE books
+             SET title = $1,
+                 author = $2,
+                 published_year = $3
+             WHERE id = $4
+             RETURNING *`,
+            [book.title, book.author, book.published_year, req.params.id]
+        );
 
-        if (books.rowCount === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
-        res.status(200).send(book);
+        res.status(200).json(result.rows);
+
     } catch (error) {
         res.status(500).send(error);
         console.error(error);
@@ -84,9 +101,9 @@ app.put("/books/:id", async (req, res) => {
 
 app.delete("/books/:id", async (req, res) => {
     try {
-        const books = await pool.query("DELETE FROM books WHERE id = $1", [req.params.id]);
+        const result = await pool.query("DELETE FROM books WHERE id = $1", [req.params.id]);
 
-        if (books.rowCount === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
@@ -100,9 +117,9 @@ app.delete("/books/:id", async (req, res) => {
 
 app.delete("/books", async (req, res) => {
     try {
-        const books = await pool.query("DELETE FROM books");
+        const result = await pool.query("DELETE FROM books");
 
-        if (books.rowCount === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).send({ message: "Livro não encontrado" });
         }
 
